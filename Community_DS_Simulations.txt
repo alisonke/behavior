@@ -1,0 +1,110 @@
+model{
+  
+  ###species specific parameters
+  
+  for (s in 1:spec){
+    asig[s]~dnorm(mu_s, tau_s)
+    beta1[s]~dnorm(mu_b1,tau_b1)
+    alpha[s]~dnorm(mu_a,tau_a)
+  }
+  
+  ###hyperparameters of species level random effects
+  mu_s~dnorm(0,0.01)
+  tau_s<-1/(sig_s*sig_s)
+  sig_s~dunif(0,500)
+  
+  mu_a~dnorm(0,0.01)
+  sig_a<-1/sqrt(tau_a)
+  tau_a~dgamma(0.1,0.1)
+  
+  mu_b1~dnorm(0,0.01)
+  sig_b1<-1/sqrt(tau_b1)
+  tau_b1~dgamma(0.1,0.1)
+  
+  
+  ### fixed observation coefficient
+  
+  bsig~dnorm(0,0.01)
+  
+  
+  for (s in 1:spec){
+    
+    for (j in 1:nsites){
+      
+      sigma[s,j]<-exp(asig[s] + bsig*OBSVAR[j])
+      
+      f.0[s,j] <- 2 * dnorm(0,0, 1/sigma[s,j]^2)
+      
+      for(k in 1:nG){
+        
+        ### approximation to integral of distance function over distance categories
+        ### by using mid-point of distance categories
+        ### works for point surveys (with appropriate values for pi[k]) 
+        ### if used, delete line above starting with 'f.0'
+        
+        ### p[s,j,k]<- exp( -xg[k]*xg[k]/(2*sigma[s,j]*sigma[s,j]) ) #
+        ### fc[s,j,k]<- p[s,j,k]*pi[k]                         
+        ### fsc[s,j,k]<- fc[s,j,k]/pcap[s,j]       
+        ### fct[s,j,k]<-fsc[s,j,k]/sum(fsc[s,j,1:nG])  
+        
+        
+        ### actual integral over distance categories
+        
+        up[s,j,k]<-pnorm(db[k+1], 0, 1/sigma[s,j]^2) 
+        low[s,j,k]<-pnorm(db[k], 0, 1/sigma[s,j]^2) 
+        p[s,j,k]<- 2 * ( up[s,j,k] - low[s,j,k])
+        f[s,j,k]<- p[s,j,k]/f.0[s,j]/v                          
+        fc[s,j,k]<- f[s,j,k] * pi[k]       
+        fct[s,j,k]<-fc[s,j,k]/sum(fc[s,j,1:nG])  
+        
+      }
+      
+      
+      pcap[s,j]<-sum(fc[s,j,1:nG])    # overall detection probability
+      
+      lambda[j,s]<- exp(alpha[s] + beta1[s]*v1[j])
+      
+      ### for a flexible number of covariates, use:
+      ### lambda[j,s]<- exp(alpha[s] + inprod(beta1[s,]*v1[j,]))
+      ### see seabird application for an example
+      
+      y[j,s]~ dbin(pcap[s,j],N[j,s])
+      N[j,s]~dpois(lambda[j,s])
+      
+      
+      ###create replicate abundances for Bayesian p-value on abundance component
+      
+      Nnew[j,s]~dpois(lambda[j,s])
+      
+      ### residuals for 'observed' and new abundances 
+      FT1[j,s]<-pow(sqrt(N[j,s])-sqrt(lambda[j,s]),2)
+      FT1new[j,s]<-pow(sqrt(Nnew[j,s])-sqrt(lambda[j,s]),2)
+    }
+    
+    T1p[s]<-sum(FT1[1:nsites,s])
+    T1newp[s]<-sum(FT1new[1:nsites,s])
+  }
+  
+  # Bayesian p-value
+  Bp.N<-sum(T1newp[1:spec])>sum(T1p[1:spec])
+  
+  
+  for(i in 1:nind){
+    dclass[i] ~ dcat(fct[species[i],site[i],1:nG]) 
+    
+    ###generate new observations, calculate residuals for Bayesian p-value on detection component
+    dclassnew[i] ~ dcat(fct[species[i],site[i],1:nG]) 
+    Tobsp[i]<- pow(1- sqrt(fct[species[i],site[i],dclass[i]]),2)
+    Tobspnew[i]<- pow(1- sqrt(fct[species[i],site[i],dclassnew[i]]),2)
+  }
+  
+  Bp.Obs<-sum(Tobspnew[1:nind])>sum(Tobsp[1:nind])
+  
+  
+  ###monitor total abundance
+  for (i in 1:spec){
+    Nspec[i]<-sum(N[1:nsites,i])
+  }
+  
+  
+}
