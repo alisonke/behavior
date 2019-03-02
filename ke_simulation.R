@@ -53,7 +53,7 @@ while(iter<=niter){
   
   #####simulate site-specific binary covariate and species and site specific detection parameter sigma 
   
-  obscov<-rbinom(nSites, 1, 0.6)			# observation covariate
+  obscov<-rbinom(nSites, 1, 0.6)			# observation covariate. how is the .6 chosen?
   s.alpha<-rnorm(n.spec, mu.s, sig.s)		# detection intercept
   
   ###makes a species by site matrix for Scale parameter of half-normal detection function 
@@ -93,7 +93,14 @@ while(iter<=niter){
         next
       
       # Distance from observer to the individual
-      d <- runif(N[i,j], 0, strip.width) 		# uniform distribution of animals
+      #d <- runif(N[i,j], 0, strip.width) 		# uniform distribution of animals
+      
+      #make a sampling distribution for circle. made up probs for now
+      #the scale is wrong for sigma
+      sampleDist = function(n) { 
+        sample(x = c(10,20,30,40,50), n, replace = T, prob = c(0.05, 0.10, 0.15, 0.3,.4)) 
+      }
+      d<-sampleDist(N[i,j])
       
       p <- g(x=d, sig=sigma[i,j])   		# Detection probability
       seen <- rbinom(N[i,j], 1, p) 		# Which individuals are detected

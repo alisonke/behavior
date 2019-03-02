@@ -1,4 +1,3 @@
-
 ##########################################################################################################
 #### Sollmann, R., Gardner, B., Williams, K.A., Gilbert, A.T. and Veit, R.R. A hierarchical distance #####
 #### sampling model to estimate abundance and covariate associations of species and communities	     #####	
@@ -12,7 +11,6 @@
 #### simulate abundance for a community of species, then generate distance sampling data from that   #####
 #### and analyze with data-generating model; summarize results across iterations                     #####
 ##########################################################################################################
-
 
 library(rjags)
 
@@ -57,7 +55,7 @@ sig.b1<-0.5					# SD of species-level random effect on coefficient of log(expect
 
 ###########################################################################################################
 ### begin iterations ######################################################################################
-niter<-100					# number of iterations
+niter<-2					# number of iterations
 iter<-1						# starting iteration
 
 while(iter<=niter){
@@ -661,6 +659,3 @@ for (i in 1:length(cats)){
 Nout[,6]<-table(Ncut)
 
 write.csv(round(Nout, dig=3),paste('BetaByN_', n.spec, '.csv', sep='' ))
-
-
-

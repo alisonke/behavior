@@ -17,7 +17,7 @@ logit(P[j,k,b]) <- alpha.0 + alpha.1*X[j] + ...
 # A multinomial distribution (or something similar) is used to divide up the total number of animals during a sampling occurence. This I think allows the assumption that the underlying number of indiviuals is the same across all site visits is the same (ensuring closure), but allows the actual number of animals doing each behavior to vary (but maintains identifiability --- I THINK --- because the underlying probability of each behavior is assumed to be the same from visit to visit.). I again am not sure this will work, in theory or practice, but whether or not it does could be tested with simulations (and whether the degree to which it is wrong if it doesn't work is material or not).
 for (j in 1:J){
 	for (k in 1:K){	
-		D[j,k,1:B] ~ dmulti(pi[1:b], N[j])
+		D[j,k,1:B] ~ dmulti(pi[j,1:b], N[j])
 	}
 }
 # pi is the underlying probabilities of each behavior. I'm pretty sure that multinomial will internally scale pi to sum to one, so I think the behaviors could be parameterized something like:
