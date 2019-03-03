@@ -96,7 +96,6 @@ Ya<-matrix(c(rowSums(Y[,,1]),rowSums(Y[,,2]),rowSums(Y[,,2])),nrow=3,byrow=T)
 
 data <- list(nSites = site, nVisits = visit, forest = forest, nBehav = behav, Ya=Ya, Y=Y)
 
-
 model.string <-"
 model {
 # Priors
@@ -114,10 +113,11 @@ lambda[i]<-exp(beta*forest[i])
 N[i] ~ dpois(lambda[i])}
 
 ##out of the abundances, there are 4 behaviors that come from a multinomial distribution
-#Nb is the actual abundance of each behavior 
+#Nb is the actual abundance of each behavior for each visit
 
 for (i in 1:nSites){
-Nb[i,1:4] ~ dmulti(p[i,1:4] , N[i])}
+for(k in 1:nVisits){
+Nb[i,1:4,k] ~ dmulti(p[i,1:4] , N[i])}}
 
 ##the behavior probabilities relate to forest cover (b.beta). They are constant across visits.
 
@@ -138,7 +138,7 @@ logit(detect[i]) = -2*forest[i]
 for (i in 1:nSites){
 for(j in 1:nBehav){
 for (k in 1:nVisits){
-Y[i,j,k] ~ dbin(detect[i],Nb[i,j])
+Y[i,j,k] ~ dbin(detect[i],Nb[i,j,k])
 }}}
 
 ##the values I want: Nb, b.beta
@@ -148,12 +148,12 @@ Y[i,j,k] ~ dbin(detect[i],Nb[i,j])
 modeljags<-textConnection(model.string)
 
 #inits function
-inits <- function(){list(Betadet=-2, N=c(rep(4*(max(Y)+1),10)), Nb=matrix(c(rep(max(Y)+1,40)),nrow=10),beta= rnorm(1), Mu.v =rep(rnorm(1),3), Tau.v= rep(rlnorm(1),3))}
+inits <- function(){list(Betadet=-2, N=c(rep(4*(max(Y)+1),10)), Nb=array(c(rep(max(Y)+1,40)),dim=c(10,4,3)),beta= rnorm(1), Mu.v =rep(rnorm(1),3), Tau.v= rep(rlnorm(1),3))}
 # Parameters to estimate
 params <- c("beta","Betadet", "lambda","N","Nb","detect","b.beta")
 
 # MCMC settings
-nc =3 ; ni= 10000 ; nb =1000 ; nt= 1
+nc =3 ; ni= 5000 ; nb =500 ; nt= 1
 
 # Start Gibbs sampler
 sat.jags <- jags.model(modeljags,data=data,n.chains=3,n.adapt =1000,inits=inits)
