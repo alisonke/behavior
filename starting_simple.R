@@ -1,5 +1,8 @@
 ####Starting simple again
 
+###goals: to get an estimated abundance of behavior for each site
+#         to get a coefficient for effect of forest cover on abundance of each behavior
+
 library("boot")
 library("rjags")
 
@@ -36,7 +39,7 @@ behav.prob.int <- c(.2,.1,.6,.1)
 
 #each behavior is controlled in some way by forest cover. for example, let's pretend it's eating, breeding, calling, aggression
 
-behav.prob.beta <- c(4,2,3,1)
+behav.prob.beta <- c(2,4,3,1)
 
 behav.subprob <- behav.prob.int + behav.prob.beta # + species level covariate?
 
@@ -52,7 +55,7 @@ for (j in 1:site){
 
 #make up a beta for relationship between forest and detection
 
-Bd = -2
+Bd <- -2
 
 #make up an alpha intercept for detection of each behavior that changes at each visit depending on Mu.v and Tau.v
 
@@ -75,9 +78,7 @@ for(k in 1:visit){
   for(b in 1:behav){
     for(j in 1:site){
       detect[j,b,k]<-inv.logit(alpha0[k,b]+Bd*forest[j])
-    }
-  }
-}
+    }}}
 
 #simulate observations
 Y <-array(c(rep(0,site*behav*visit)),dim=c(site,behav,visit)) #empty observation matrix
@@ -89,61 +90,70 @@ for(k in 1:visit){
     }
   }
 }
-
-
 ####### now model abundance with detection parameter #############
 ### compile data for JAGS model
-
 Ya<-matrix(c(rowSums(Y[,,1]),rowSums(Y[,,2]),rowSums(Y[,,2])),nrow=3,byrow=T)
 
 data <- list(nSites = site, nVisits = visit, forest = forest, nBehav = behav, Ya=Ya, Y=Y)
+
 
 model.string <-"
 model {
 # Priors
 beta ~ dnorm(0,0.001)
-Bd ~ dnorm(0,0.0001)
+Betadet ~ dnorm(0,.0001)
 b.beta[1] <- 0; # zero contrast for baseline behavior
-for (j in 2 : nBehav) { b.beta[j] ~ dnorm(0, 0.0001)} # vague priors for other behaviors
-
-# Likelihood, detection plus a random error intercept
-
-for(i in 1:nSites){
-logit(detect[i]) = Bd*forest[i]
-}
+for (j in 2 : nBehav) { b.beta[j] ~ dnorm(0, 0.0001)} # vague priors for other behaviors. this is effect of forest on each behavior j
 
 # Likelihood, abundance
-
-for (i in 1:nSites){
-for (k in 1:nVisits){
-Ya[k,i] ~ dbin(detect[i],N[i])
-}}
+##Ya is total abundance observed at each visit.
+#for each site, total abundance is a poisson distribution. forest cover affects total abundance through beta.
 
 for (i in 1:nSites){
 lambda[i]<-exp(beta*forest[i])
 N[i] ~ dpois(lambda[i])}
 
-for (i in 1:nSites){
-for(k in 1:nVisits){
-Y[i,1:4,k] ~ dmulti(p[i,1:4] , Ya[k,i])}}
+##out of the abundances, there are 4 behaviors that come from a multinomial distribution
+#Nb is the actual abundance of each behavior 
 
 for (i in 1:nSites){
+Nb[i,1:4] ~ dmulti(p[i,1:4] , N[i])}
+
+##the behavior probabilities relate to forest cover (b.beta). They are constant across visits.
+
+for(i in 1:nSites){
 for(j in 1:nBehav){
 p[i,j] <- phi[i,j]/sum(phi[i,])
 log(phi[i,j]) <- b.beta[j]*forest[i]
 }
 }
 
+###Detection process. detection probability is constant across behaviors and visits for now.
+
+#this is effect of forest cover on detection. Here, it is the same for each behavior (not true in simulation)
+
+for(i in 1:nSites){
+logit(detect[i]) = -2*forest[i]
+}
+for (i in 1:nSites){
+for(j in 1:nBehav){
+for (k in 1:nVisits){
+Y[i,j,k] ~ dbin(detect[i],Nb[i,j])
+}}}
+
+##the values I want: Nb, b.beta
+
+
 }"
 modeljags<-textConnection(model.string)
 
 #inits function
-inits <- function(){list(N=c(rep(4*(max(Y)+1),10)), Nb=matrix(c(rep(max(Y)+1,40)),nrow=10),beta= rnorm(1), Bd = rnorm(1), Mu.v =rep(rnorm(1),3), Tau.v= rep(rlnorm(1),3))}
+inits <- function(){list(Betadet=-2, N=c(rep(4*(max(Y)+1),10)), Nb=matrix(c(rep(max(Y)+1,40)),nrow=10),beta= rnorm(1), Mu.v =rep(rnorm(1),3), Tau.v= rep(rlnorm(1),3))}
 # Parameters to estimate
-params <- c("beta","Bd", "Mu.v", "Tau.v","lambda","N","detect","alpha0","b.beta")
+params <- c("beta","Betadet", "lambda","N","Nb","detect","b.beta")
 
 # MCMC settings
-nc =3 ; ni= 1200 ; nb =200 ; nt= 1
+nc =3 ; ni= 10000 ; nb =1000 ; nt= 1
 
 # Start Gibbs sampler
 sat.jags <- jags.model(modeljags,data=data,n.chains=3,n.adapt =1000,inits=inits)
@@ -151,3 +161,5 @@ samps.coda <- coda.samples(sat.jags, params, ni, nt,n.burnin=nb)
 samps.jags <- jags.samples(sat.jags, params, ni, nt,n.burnin=nb)
 print(samps.jags)
 summary(samps.coda)
+
+##this runs at least. I had to change Betadet to a number and the N[i] abundance estimates are constant, which is a problem.
