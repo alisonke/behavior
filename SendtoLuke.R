@@ -141,7 +141,7 @@ Y[i,j,k] ~ dbin(detect[i],Nb[i,j,k])
 modeljags<-textConnection(model.string)
 
 #inits function
-inits <- function(){list(Betadet=rnorm(1),N=rep(max(Y)*4,10),Nb=array(c(rep(max(Y),site*behav*visit)),dim=c(site,behav,visit)),beta= rnorm(1))}
+inits <- function(){list(Betadet=rnorm(1),N=rep(max(Y)*4,10),beta= rnorm(1))}
 # Parameters to estimate
 params <- c("beta","Betadet","b.beta","lambda","N","Nb","detect")
 
@@ -155,4 +155,4 @@ samps.jags <- jags.samples(sat.jags, params, ni, nt,n.burnin=nb)
 print(samps.jags)
 summary(samps.coda)
 
-##this runs at least. I had to change Betadet to a number and the N[i] abundance estimates are constant, which is a problem.
+#have to give N initial values for it to run, but then N estimates are constant

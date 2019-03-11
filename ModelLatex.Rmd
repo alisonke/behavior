@@ -1,0 +1,49 @@
+---
+title: "Single-Species Model Framework"
+output: html_document
+---
+<br>
+<br>
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+i: site<br>
+j: behavior<br>
+k: visit<br>
+forest: forest cover (continuous or categorical)
+<br>
+$$
+Y_{i,j,k} \sim Binomial (B_{i,j,k}, P_{i,j,k})\\
+$$
+
+##Detection 
+
+<br>
+<br>
+$$
+logit(P_{i,j,k}) = \alpha_{j,k} +\beta 1*forest_{i}\\
+ \alpha_{j,k} \sim Normal(\mu_{j},\tau_{j})
+$$
+
+##Abundance  
+<br>
+<br>
+bp: underlying probability for each behavior. e.g. (0.3,0.2,0.1,0.4) <br>
+bsp: underlying subprobability. Needed for the probabilities to sum to 1
+<br>
+
+
+
+$$
+ B_{i,1:j,k} \sim Multinomial(N_{i},bp_{i,1:j})\\
+ N_{i}\sim Poisson(\lambda_{i})\\
+ log(\lambda_{i}) =\beta 2*forest_{i}\\
+ bp_{i,j} = bsp_{i,j}/ \sum_{1}^{j}bsp_{i,j}\\
+ bsp_{i,j} = \alpha1_{j} + \beta3_{j}*forest_{i}
+$$
+
+<br>
+<br>
+<br>
+<br>
