@@ -56,7 +56,7 @@ Bd = -2
 
 #make up an alpha intercept for detection of each behavior that changes at each visit depending on Mu.v and Tau.v
 
-Mu.v <- c(-.7,-.5,.5,.7)  # made up Mu.v values
+Mu.v <- c(0,-.5,.5,.7)  # made up Mu.v values
 Tau.v <- c(.5,.2,.4,.3) #made up Tau.v values
 
 alpha0 <- matrix(c(rep(0,behav*visit)),nrow=visit) #empty alpha matrix
@@ -156,7 +156,7 @@ Y[i,j,k] ~ dbin(detect[i,j,k],Nb[i,j])
 modeljags<-textConnection(model.string)
 
 #inits function
-inits <- function(){ list(N=c(rep(152,site)),alpha0=alpha0+50,Nb=array(c(rep(38,site*behav)),dim=c(site,behav)),beta= rnorm(1), Bd = rnorm(1), Mu.v =rep(rnorm(1),4), Tau.v= rep(rlnorm(1),4))}
+inits <- function(){ list(N=c(rep(152,site)),alpha0=alpha0,Nb=array(c(rep(38,site*behav)),dim=c(site,behav)),beta= rnorm(1), Bd = rnorm(1), Mu.v =rep(rnorm(1),4), Tau.v= rep(rlnorm(1),4))}
 # Parameters to estimate
 params <- c("beta","Bd", "Mu.v", "Tau.v","lambda","N","detect","alpha0","b.alpha","b.beta")
 
