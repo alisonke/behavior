@@ -56,8 +56,9 @@ l.alpha <- rnorm(n.spec, l.mu.alpha, l.sig.alpha)
 ##species x behavior fixed coefficient for covariate
 l.beta<-matrix(rnorm(n.spec*n.behav),nrow=n.spec)
 
-##spatial covariate
+##spatial covariates
 landuse<-rnorm(n.sites, 0, 1)
+noise<-rbinom(n.sites, 1, 0.6)
 
 ##Poisson mean (log(expected abundance))
 lambda<-array(NA,dim=c(n.spec,n.behav,n.sites))
@@ -78,6 +79,10 @@ for(i in 1:n.spec){
 ### total number of individuals in all sampled transects for each species
 N.tot<-apply(N,1,sum)
 
+##sp-specific intercept
+s.alpha <- rnorm(n.behav, s.mu.alpha, s.sig.alpha)
+
+
 #####simulate continuous distance data
 # y=number of individuals detected in each distance interval
 y <- array(0, c(n.spec, n.behav, n.sites, length(dist.breaks)-1))
@@ -91,6 +96,8 @@ for(i in 1:n.spec){
     probs<-((dist.breaks[-1]^2-(dist.breaks[-1]-1)^2))/((tail(dist.breaks,1))^2)
     # Distance from observer to the individual
     d <- rcat(N[i, j, k], probs)		# uniform distribution of animals
+    sigma <- array(rep(NA,n.behav*n.sites),dim=c(n.behav,n.sites))
+    sigma[j,k] <- exp(s.alpha[j]+s.beta[j]*noise[k])  
     p <- g(x=d, sig=sigma[j,k])   		# Detection probability
     seen <- rbinom(N[i,j,k], 1, p) 		# Which individuals are detected
     if(all(seen == 0))
